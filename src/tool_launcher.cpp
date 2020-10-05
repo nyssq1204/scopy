@@ -68,6 +68,7 @@
 #include <libm2k/contextbuilder.hpp>
 #include <libm2k/m2kexceptions.hpp>
 #include <libm2k/digital/m2kdigital.hpp>
+#include <QtCore/QDirIterator>
 #include "scopyExceptionHandler.h"
 
 #define TIMER_TIMEOUT_MS 5000
@@ -321,6 +322,7 @@ void ToolLauncher::_toolSelected(enum tool tool)
 
 void ToolLauncher::readPreferences()
 {
+	m_logging_enable = prefPanel->getLogging_enabled();
 	m_use_decoders = prefPanel->getDigital_decoders_enabled();
 	debugger_enabled = prefPanel->getDebugger_enabled();
 	skip_calibration_if_already_calibrated = prefPanel->getSkipCalIfCalibrated();
@@ -843,18 +845,21 @@ void ToolLauncher::setupHomepage()
 		}
 		QSettings settings;
 		QFileInfo info(settings.fileName());
+		QString log_file_location = QFileInfo(settings.fileName()).absolutePath();
+		log_file_location.append("/ScopyLog-*");
 		std::string head = "https://github.com/analogdevicesinc/scopy/issues/new?title=%3CInstrument%3E:%20%3CShort%20description%20of%20the%20bug%3E&body=";
 		std::string os_version_urlstring = "OS%20Version: " + os;
 		std::string fw_version_urlstring = "%0AFW%20Version: " + fw;
 		std::string gittag_urlstring = "%0ASW%20Version: " + gittag;
 		std::string description_urlstring = "%0A%0ADescription%20of%20the%20bug:%3Cdescription%3E%0ASteps%20to%20reproduce:"
-					  "%0A-%0A-%0A%0AThe%20ini%20files%20might%20be%20useful%20to%20reproduce%20the%20error.";
+					  "%0A-%0A-%0A%0AThe%20ini%20and%20the%20log%20files%20might%20be%20useful%20to%20reproduce%20the%20error.";
 		std::string ini_file_urlstring = "%0AThe%20ini%20file%20is%20located%20at: " + info.absoluteFilePath().toStdString();
-		std::string finalpart = "%0APlease%20consider%20attaching%20it.&labels=bug,reported-from-scopy";
+		std::string log_file_urlstring = "%0AThe%20log%20file%20is%20located%20at: " + log_file_location.toStdString();
+		std::string finalpart = "%0APlease%20consider%20attaching%20them.&labels=bug,reported-from-scopy";
 		QUrl url(QString::fromStdString(head + os_version_urlstring +
 						fw_version_urlstring + gittag_urlstring +
 						description_urlstring + ini_file_urlstring +
-						finalpart));
+						log_file_urlstring + finalpart));
 		QDesktopServices::openUrl(url);
 	});
 
@@ -1107,6 +1112,24 @@ void adiscope::ToolLauncher::connectBtn_clicked(bool pressed)
 	if (connectedDev != selectedDev) {
 		/* Connect to the selected device, if any */
 		if (selectedDev) {
+#ifdef LIBM2K_ENABLE_LOG
+			QString path = QFileInfo(settings->fileName()).absolutePath();
+			QDirIterator it(path.toStdString().c_str(), {"ScopyLog-*"});
+			// delete any old logging file
+			while (it.hasNext()) {
+				QFile(it.next()).remove();
+			}
+			path.append("/ScopyLog-");
+			if (m_logging_enable) {
+				// logging enabled
+				google::SetLogDestination(google::GLOG_INFO, "");
+				google::SetLogDestination(google::GLOG_INFO, path.toStdString().c_str());
+			} else {
+				// logging disabled
+				google::SetLogDestination(google::GLOG_INFO, "");
+			}
+			google::SetLogSymlink(google::GLOG_INFO, "");
+#endif
 			QString uri = selectedDev->uri();
 			selectedDev->infoPage()->identifyDevice(false);
 			search_timer->stop();
@@ -1508,6 +1531,7 @@ bool adiscope::ToolLauncher::switchContext(const QString& uri)
 	}
 
 	m_m2k = m2kOpen(ctx, "");
+	m_m2k->logAllAttributes();
 
 	filter = new Filter(ctx);
 

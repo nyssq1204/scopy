@@ -123,6 +123,9 @@ public:
 	bool getSkipCalIfCalibrated() const;
 	void setSkipCalIfCalibrated(bool val);
 
+	bool getLogging_enabled() const;
+	void setLogging_enabled(bool value);
+
 Q_SIGNALS:
 
 	void notify();
@@ -167,6 +170,7 @@ private:
 	bool m_debug_messages_active;
 	bool m_attemptTempLutCalib;
 	bool m_skipCalIfCalibrated;
+	bool m_logging_enabled;
 
 	Preferences_API *pref_api;
 };
@@ -198,6 +202,7 @@ class Preferences_API : public ApiObject
 	Q_PROPERTY(bool debug_messages_active READ getDebugMessagesActive WRITE setDebugMessagesActive)
 	Q_PROPERTY(bool attemptTempLutCalib READ getAttemptTempLutCalib WRITE setAttemptTempLutCalib)
 	Q_PROPERTY(bool skipCalIfCalibrated READ getSkipCalIfCalibrated WRITE setSkipCalIfCalibrated)
+	Q_PROPERTY(bool logging_enabled READ getLoggingEnabled WRITE setLoggingEnabled)
 
 
 public:
@@ -271,6 +276,9 @@ public:
 
 	bool getSkipCalIfCalibrated() const;
 	void setSkipCalIfCalibrated(bool val);
+
+	bool getLoggingEnabled() const;
+	void setLoggingEnabled(const bool &enabled);
 
 private:
 	Preferences *preferencePanel;

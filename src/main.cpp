@@ -32,6 +32,10 @@
 #include "tool_launcher.hpp"
 #include "scopyApplication.hpp"
 #include <stdio.h>
+#ifdef LIBM2K_ENABLE_LOG
+#include <glog/logging.h>
+#include <QtCore/QDirIterator>
+#endif
 
 
 using namespace adiscope;
@@ -39,6 +43,10 @@ using namespace adiscope;
 int main(int argc, char **argv)
 {
 	ScopyApplication app(argc, argv);
+#ifdef LIBM2K_ENABLE_LOG
+	google::InitGoogleLogging(argv[0]);
+#endif
+
 #if BREAKPAD_HANDLER
 #ifdef Q_OS_LINUX
 	google_breakpad::MinidumpDescriptor descriptor("/tmp");
