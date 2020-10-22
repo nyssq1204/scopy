@@ -52,7 +52,9 @@
 #include "info_page.hpp"
 #include "device_widget.hpp"
 #include "connectDialog.hpp"
+#include "newinstrument.hpp"
 #include "toolmenu.h"
+
 
 extern "C" {
 	struct iio_context;
@@ -66,6 +68,7 @@ class Device;
 namespace adiscope {
 class ToolLauncher_API;
 class SpectrumAnalyzer;
+class NewInstrument;
 class Debugger;
 class ManualCalibration;
 class UserNotes;
@@ -218,6 +221,7 @@ private:
 	logic::PatternGenerator *pattern_generator;
 	NetworkAnalyzer *network_analyzer;
 	SpectrumAnalyzer *spectrum_analyzer;
+	NewInstrument *newInstrument;
 	Debugger *debugger;
 	ManualCalibration *manual_calibration;
 	QWidget *current;
