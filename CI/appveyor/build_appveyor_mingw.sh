@@ -82,9 +82,10 @@ mv /c/$DEST_FOLDER/Scopy.exe.sym /c/$DEBUG_FOLDER
 mv /c/$DEST_FOLDER/.debug /c/$DEBUG_FOLDER
 
 echo "### Creating archives ... "
-7z a "/c/scopy-${ARCH_BIT}bit.zip" /c/$DEST_FOLDER
-# appveyor PushArtifact /c/scopy-${ARCH_BIT}bit.zip
 7z a "/c/debug-${ARCH_BIT}bit.zip" /c/$DEBUG_FOLDER
 # appveyor PushArtifact /c/debug-${ARCH_BIT}bit.zip
-iscc //Qp /c/$BUILD_FOLDER/scopy-$ARCH_BIT.iss
+strip -s -v /c/$DEST_FOLDER *
+i7z a "/c/scopy-${ARCH_BIT}bit.zip" /c/$DEST_FOLDER
+# appveyor PushArtifact /c/scopy-${ARCH_BIT}bit.zip
+scc //Qp /c/$BUILD_FOLDER/scopy-$ARCH_BIT.iss
 # appveyor PushArtifact /c/$BUILD_FOLDER/scopy-$ARCH_BIT.iss
