@@ -31,8 +31,11 @@
 #include <QButtonGroup>
 #include <QMap>
 #include <QStringList>
+#include <QTextStream>
 #include <info_widget.h>
 #include <QTextBrowser>
+#include <QDateTime>
+#include <QElapsedTimer>
 
 #include "apiObject.hpp"
 #include "dmm.hpp"
@@ -192,6 +195,8 @@ private:
 	libm2k::context::M2k *m_m2k;
 
 	ToolMenu *menu;
+	QFile *loggerFile;
+	QTextStream *logger;
 
 	QVector<int> position;
 	QVector<Debugger*> debugInstances;

@@ -183,7 +183,7 @@ ToolLauncher::ToolLauncher(QString prevCrashDump, QWidget *parent) :
 
 	QSettings oldSettings;
 	QFile scopy(oldSettings.fileName());
-	QFile tempFile(oldSettings.fileName() + ".bak");
+	QFile tempFile(oldSettings.fileName() + ".bak");	
 	if (tempFile.exists())
 		tempFile.remove();
 
@@ -192,6 +192,14 @@ ToolLauncher::ToolLauncher(QString prevCrashDump, QWidget *parent) :
 
 	scopy.copy(tempFile.fileName());
 	settings = new QSettings(tempFile.fileName(), QSettings::IniFormat);
+	QFileInfo inf(scopy);
+	QString loggerFilePath = inf.path()+ QDir::separator() + "apptimings.log";
+	loggerFile = new QFile(loggerFilePath);
+	loggerFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text);
+	logger = new QTextStream(loggerFile);
+
+	(*logger) << QDateTime::currentDateTime().toString() << " Application start\n";
+
 
 	tl_api->ApiObject::load(*settings);
 
@@ -617,6 +625,10 @@ void ToolLauncher::update()
 
 ToolLauncher::~ToolLauncher()
 {
+
+	delete logger;
+	loggerFile->close();
+	delete loggerFile;
 
 	disconnect();
 	this->removeEventFilter(this);
@@ -1342,6 +1354,8 @@ QPair<bool, bool> adiscope::ToolLauncher::initialCalibration()
 
 QPair<bool, bool> adiscope::ToolLauncher::calibrate()
 {
+	QElapsedTimer timer;
+	timer.start();
 	bool ok=false;
 	calibrating = true;
 
@@ -1373,15 +1387,23 @@ QPair<bool, bool> adiscope::ToolLauncher::calibrate()
 		Q_EMIT calibrationFailed();
 	}
 
+	(*logger)<<QDateTime::currentDateTime().toString()<<" " <<"ToolLauncher Calibrate took "<< timer.elapsed() << " miliseconds\n";
+
 	return { ok, skipCalib };
 }
 
 void adiscope::ToolLauncher::enableAdcBasedTools()
 {
+	QElapsedTimer timer1;
+	timer1.start();
 	try {
 		if (filter->compatible(TOOL_OSCILLOSCOPE)) {
+			QElapsedTimer timer;
+			timer.start();
 			oscilloscope = new Oscilloscope(ctx, filter, menu->getToolMenuItemFor(TOOL_OSCILLOSCOPE),
 							&js_engine, this);
+			(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"Osc load took "<< timer.elapsed() << " miliseconds\n";
+
 			toolList.push_back(oscilloscope);
 			adc_users_group.addButton(menu->getToolMenuItemFor(TOOL_OSCILLOSCOPE)->getToolStopBtn());
 			connect(oscilloscope, &Oscilloscope::showTool, [=]() {
@@ -1393,8 +1415,11 @@ void adiscope::ToolLauncher::enableAdcBasedTools()
 		}
 
 		if (filter->compatible(TOOL_DMM)) {
+			QElapsedTimer timer;
+			timer.start();
 			dmm = new DMM(ctx, filter, menu->getToolMenuItemFor(TOOL_DMM),
 				      &js_engine, this);
+			(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"DMM load took "<< timer.elapsed() << " miliseconds\n";
 			adc_users_group.addButton(menu->getToolMenuItemFor(TOOL_DMM)->getToolStopBtn());
 			toolList.push_back(dmm);
 			connect(dmm, &DMM::showTool, [=]() {
@@ -1418,7 +1443,10 @@ void adiscope::ToolLauncher::enableAdcBasedTools()
 		}
 
 		if (filter->compatible(TOOL_SPECTRUM_ANALYZER)) {
+			QElapsedTimer timer;
+			timer.start();
 			spectrum_analyzer = new SpectrumAnalyzer(ctx, filter, menu->getToolMenuItemFor(TOOL_SPECTRUM_ANALYZER),&js_engine, this);
+			(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"Spec analyzer load took "<< timer.elapsed() << " miliseconds\n";
 			toolList.push_back(spectrum_analyzer);
 			adc_users_group.addButton(menu->getToolMenuItemFor(TOOL_SPECTRUM_ANALYZER)->getToolStopBtn());
 			connect(spectrum_analyzer, &SpectrumAnalyzer::showTool, [=]() {
@@ -1427,8 +1455,10 @@ void adiscope::ToolLauncher::enableAdcBasedTools()
 		}
 
 		if (filter->compatible((TOOL_NETWORK_ANALYZER))) {
-
+			QElapsedTimer timer;
+			timer.start();
 			network_analyzer = new NetworkAnalyzer(ctx, filter, menu->getToolMenuItemFor(TOOL_NETWORK_ANALYZER), &js_engine, this);
+			(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"Net analyzer load took "<< timer.elapsed() << " miliseconds\n";
 			adc_users_group.addButton(menu->getToolMenuItemFor(TOOL_NETWORK_ANALYZER)->getToolStopBtn());
 			toolList.push_back(network_analyzer);
 			connect(network_analyzer, &NetworkAnalyzer::showTool, [=]() {
@@ -1443,15 +1473,21 @@ void adiscope::ToolLauncher::enableAdcBasedTools()
 		qDebug(CAT_TOOL_LAUNCHER) << e.what();
 		m_adc_tools_failed = true;
 	}
+	(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"ADC tools"<< timer1.elapsed() << " miliseconds\n";
 }
 
 
 void adiscope::ToolLauncher::enableDacBasedTools()
 {
+	QElapsedTimer timer1;
+	timer1.start();
 	try {
 		if (filter->compatible(TOOL_SIGNAL_GENERATOR)) {
+			QElapsedTimer timer;
+			timer.start();
 			signal_generator = new SignalGenerator(ctx, filter,
 							       menu->getToolMenuItemFor(TOOL_SIGNAL_GENERATOR), &js_engine, this);
+			(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"siggen load took"<< timer.elapsed() << " miliseconds\n";
 			toolList.push_back(signal_generator);
 			connect(signal_generator, &SignalGenerator::showTool, [=]() {
 				menu->getToolMenuItemFor(TOOL_SIGNAL_GENERATOR)->getToolBtn()->click();
@@ -1478,10 +1514,13 @@ void adiscope::ToolLauncher::enableDacBasedTools()
 	if (m_adc_tools_failed || m_dac_tools_failed) {
 		disconnect();
 	}
+	(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"DAC tools"<< timer1.elapsed() << " miliseconds\n";
 }
 
 bool adiscope::ToolLauncher::switchContext(const QString& uri)
 {
+	QElapsedTimer timer1;
+	timer1.start();
 	destroyContext();
 
 	if (uri.startsWith("ip:")) {
@@ -1508,9 +1547,15 @@ bool adiscope::ToolLauncher::switchContext(const QString& uri)
 	calib = new Calibration(ctx, &js_engine);
 	calib->initialize();
 
+	QElapsedTimer timer;
+	timer.start();
 	if (filter->compatible(TOOL_PATTERN_GENERATOR)
 	    || filter->compatible(TOOL_DIGITALIO)) {
+
+		QElapsedTimer timer2;
+		timer2.start();
 		dioManager = new DIOManager(ctx, filter);
+		(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"DIOManager took "<< timer.elapsed() << " miliseconds\n";
 	}
 
 	if (filter->compatible(TOOL_LOGIC_ANALYZER)
@@ -1523,6 +1568,8 @@ bool adiscope::ToolLauncher::switchContext(const QString& uri)
 			info.setText(tr("Digital decoders support is disabled. Some features may be missing"));
 			info.exec();
 		} else {
+			QElapsedTimer timer2;
+			timer2.start();
 			bool success = loadDecoders(QCoreApplication::applicationDirPath() +
 						    "/decoders");
 
@@ -1533,46 +1580,60 @@ bool adiscope::ToolLauncher::switchContext(const QString& uri)
 				error.setText(tr("There was a problem initializing libsigrokdecode. Some features may be missing"));
 				error.exec();
 			}
+			(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"sigrok load took "<< timer.elapsed() << " miliseconds\n";
 		}
 	}
 
 	if (filter->compatible(TOOL_DIGITALIO)) {
+		QElapsedTimer timer2;
+		timer2.start();
 		dio = new DigitalIO(nullptr, filter, menu->getToolMenuItemFor(TOOL_DIGITALIO),
 				dioManager, &js_engine, this);
 		toolList.push_back(dio);
 		connect(dio, &DigitalIO::showTool, [=]() {
 			menu->getToolMenuItemFor(TOOL_DIGITALIO)->getToolBtn()->click();
 		});
+		(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"DIO toool took "<< timer.elapsed() << " miliseconds\n";
 	}
 
 
 	if (filter->compatible(TOOL_POWER_CONTROLLER)) {
+		QElapsedTimer timer2;
+		timer2.start();
 		power_control = new PowerController(ctx, menu->getToolMenuItemFor(TOOL_POWER_CONTROLLER),
 				&js_engine, this);
 		toolList.push_back(power_control);
 		connect(power_control, &PowerController::showTool, [=]() {
 			menu->getToolMenuItemFor(TOOL_POWER_CONTROLLER)->getToolBtn()->click();
 		});
+		(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"Power controller took "<< timer.elapsed() << " miliseconds\n";
 	}
 
-	/*if (filter->compatible(TOOL_LOGIC_ANALYZER)) {
+	if (filter->compatible(TOOL_LOGIC_ANALYZER)) {
+		QElapsedTimer timer2;
+		timer2.start();
 		logic_analyzer = new logic::LogicAnalyzer(ctx, filter, menu->getToolMenuItemFor(TOOL_LOGIC_ANALYZER),
 		&js_engine, this);
 		toolList.push_back(logic_analyzer);
 		connect(logic_analyzer, &logic::LogicAnalyzer::showTool, [=]() {
 		     menu->getToolMenuItemFor(TOOL_LOGIC_ANALYZER)->getToolBtn()->click();
 		});
+		(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"Logic analyzer took "<< timer.elapsed() << " miliseconds\n";
 	}
 
 
 	if (filter->compatible((TOOL_PATTERN_GENERATOR))) {
+		QElapsedTimer timer2;
+		timer2.start();
 		pattern_generator = new logic::PatternGenerator(ctx, filter,
 				 menu->getToolMenuItemFor(TOOL_PATTERN_GENERATOR), &js_engine, dioManager, this);
 		toolList.push_back(pattern_generator);
 		connect(pattern_generator, &logic::PatternGenerator::showTool, [=]() {
 			 menu->getToolMenuItemFor(TOOL_PATTERN_GENERATOR)->getToolBtn()->click();
 		});
-	}*/
+		(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"Pattern generator took "<< timer.elapsed() << " miliseconds\n";
+	}
+	(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"Logic tools & others took "<< timer.elapsed() << " miliseconds\n";
 
 	connect(menu->getToolMenuItemFor(TOOL_NETWORK_ANALYZER)->getToolStopBtn(),
 			&QPushButton::toggled,
@@ -1624,6 +1685,7 @@ bool adiscope::ToolLauncher::switchContext(const QString& uri)
 	calibration_thread_watcher.setFuture(calibration_thread);
 	connect(&calibration_thread_watcher, SIGNAL(finished()), this, SLOT(calibrationThreadWatcherFinished()));
 
+	(*logger)<<QDateTime::currentDateTime().toString()<< " " <<"Switch context took  "<< timer.elapsed() << " miliseconds\n";
 	return true;
 }
 
