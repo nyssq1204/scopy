@@ -1555,7 +1555,7 @@ bool adiscope::ToolLauncher::switchContext(const QString& uri)
 		});
 	}
 
-	if (filter->compatible(TOOL_LOGIC_ANALYZER)) {
+	/*if (filter->compatible(TOOL_LOGIC_ANALYZER)) {
 		logic_analyzer = new logic::LogicAnalyzer(ctx, filter, menu->getToolMenuItemFor(TOOL_LOGIC_ANALYZER),
 		&js_engine, this);
 		toolList.push_back(logic_analyzer);
@@ -1572,7 +1572,7 @@ bool adiscope::ToolLauncher::switchContext(const QString& uri)
 		connect(pattern_generator, &logic::PatternGenerator::showTool, [=]() {
 			 menu->getToolMenuItemFor(TOOL_PATTERN_GENERATOR)->getToolBtn()->click();
 		});
-	}
+	}*/
 
 	connect(menu->getToolMenuItemFor(TOOL_NETWORK_ANALYZER)->getToolStopBtn(),
 			&QPushButton::toggled,
